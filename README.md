@@ -1,0 +1,2 @@
+# consumer
+golang rabbitmq consumer
