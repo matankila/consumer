@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"net/http"
 
 	"github.com/go-redis/redis"
 	"github.com/streadway/amqp"
@@ -20,22 +21,12 @@ func failOnError(err error, msg string) {
 }
 
 func newBD(bdName string, body string) {
-	// TODO: add a row to redis db
 	err := client.Set("bd-"+bdName, "success", 0).Err()
 	if err != nil {
 		panic(err)
 	}
 
 	fmt.Printf("bd created: %s, from the settings: %s\n", bdName, body)
-}
-
-func getBD(bdName string) {
-	val, err := client.Get("bd-" + bdName).Result()
-	if err != nil {
-		panic(err)
-	}
-
-	fmt.Println("bd-"+bdName, val)
 }
 
 func main() {
@@ -77,7 +68,7 @@ func main() {
 	forever := make(chan bool)
 	go func() {
 		for d := range msgs {
-			req, ok := d.Headers["req"]
+			req, ok := d.Headers["request"]
 			if !ok {
 				failOnError(errors.New("no request found"), "Failed to find request header")
 			}
@@ -88,10 +79,10 @@ func main() {
 			}
 
 			switch req {
-			case "post":
+			case http.MethodPost:
 				newBD(bd.(string), string(d.Body))
-			case "get":
-				getBD(bd.(string))
+			default:
+				log.Println("none valid request from consumer")
 			}
 		}
 	}()
