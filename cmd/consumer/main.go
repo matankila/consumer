@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"github.com/matankilla/consumer/environment"
 	r "github.com/matankilla/consumer/redis"
 	"github.com/matankilla/consumer/utils"
 	"log"
@@ -25,9 +26,13 @@ func init() {
 }
 
 func initAmqp() {
-	var err error
+	var (
+		err     error
+		connUrl = "amqp://" + environment.RabbitUser +
+			":" + environment.RabbitPassword + "@localhost:" + environment.RabbitPort
+	)
 
-	conn, err = amqp.Dial("amqp://guest:guest@localhost:5672/")
+	conn, err = amqp.Dial(connUrl)
 	utils.FailOnError(err, "Failed to connect to RabbitMQ")
 
 	ch, err = conn.Channel()
@@ -66,9 +71,9 @@ func initAmqp() {
 
 func initRedis() {
 	client = redis.NewClient(&redis.Options{
-		Addr:     "localhost:6379",
-		Password: "", // no password set
-		DB:       0,  // use default DB
+		Addr:     "localhost:" + environment.RedisPort,
+		Password: environment.RedisPassword, // no password set
+		DB:       0,                         // use default DB
 	})
 }
 
@@ -78,7 +83,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
 func server() {
 	http.HandleFunc("/", handler)
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	log.Fatal(http.ListenAndServe(":"+environment.ServerPort, nil))
 }
 
 func main() {
